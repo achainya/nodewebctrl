@@ -1,0 +1,179 @@
+<html>
+	<head>
+		<link type="text/css" href="/css/bootstrap.min.css" rel="stylesheet"/>
+		<link type="text/css" href="/css/jquery-ui-1.8.20.custom.css" rel="stylesheet" />
+		<link type="text/css" href="/css/style.css" rel="stylesheet" />
+		<script type="text/javascript" src="//localhost:6969/socket.io/socket.io.js"></script>
+		<script type="text/javascript" src="/js/jquery-1.9.1.min.js"></script>
+		<script type="text/javascript" src="/js/jquery-ui-1.8.20.custom.min.js"></script>
+		<script type="text/javascript" src="/flot/jquery.flot.js"></script>	
+		<script>
+		$(document).ready(function() {
+			// Initialize Flot data points
+			var totalPoints = 300;
+			var res = [];
+			//Función que muestra boton1 on u off, dependiendo de la interaccion.
+			function toggleb1() {
+				$("#boton1h").toggleClass("hide");
+				$("#boton1l").toggleClass("hide");
+			}
+			//Función que muestra boton2 on u off, dependiendo de la interaccion.
+			function toggleb2() {
+				$("#boton2h").toggleClass("hide");
+				$("#boton2l").toggleClass("hide");
+			}
+			//Función que muestra boton3 on u off, dependiendo de la interaccion.
+			function toggleb3() {
+				$("#boton3h").toggleClass("hide");
+				$("#boton3l").toggleClass("hide");
+			}
+			function getInitData() {
+				// zip the generated y values with the x values
+				for (var i = 0; i < totalPoints; ++i){
+					res.push([i, 0]);
+				}
+				return res;
+			}
+			// Options for Flot plot
+			var options = {
+				series: { shadowSize: 0 }, // drawing is faster without shadows
+				yaxis: { min: 0, max: 100 },
+				xaxis: { show: false }
+			};
+			var plot = $.plot($("#placeholder"), [ getInitData() ], options);
+			
+			// Update the JQuery UI Progress Bar
+			$( "#progressbar1" ).progressbar({
+				value: 0
+			});
+			$( "#progressbar2" ).progressbar({
+				value: 0
+			});
+			$( "#progressbar3" ).progressbar({
+				value: 0
+			});
+
+			var socket = io.connect('http://localhost:6969');
+			socket.on('connect', function () {
+				socket.emit('statusleds');
+				socket.on('resstatus', function(estado) {
+					$('#ledrojo').html(estado);
+				});
+				socket.on('message1', function (msg) {
+					// Convert value to integer
+					var val = ((parseInt(msg,10) / 256)*100);
+					
+					// Put sensor value to the 'sensor_value' span
+					$('#sensor_value1').html(val.toFixed(2));
+					
+					// Push new value to Flot Plot
+					res.push([totalPoints, val]); // push on the end side
+					res.shift(); // remove first value to maintain 300 points
+					// reinitialize the x axis data points to 0 to 299.
+					for (i=0;i<totalPoints;i++) { res[i][0] = i; }
+					// Redraw the plot
+					plot.setData([ res ]);
+					plot.draw();
+					
+					// Update JQuery UI progress bar.
+					$( "#progressbar1" ).progressbar({
+						value: val
+					});
+				});
+				socket.on('message2', function (msg) {
+					var val2 = ((parseInt(msg,10) / 256)*100);
+					$('#sensor_value2').html(val2.toFixed(2));
+					// Update JQuery UI progress bar.
+					$( "#progressbar2" ).progressbar({
+						value: val2
+					});
+				});
+				socket.on('message3', function (msg) {
+					var val3 = ((parseInt(msg,10) / 256)*100);
+					$('#sensor_value3').html(val3.toFixed(2));
+					// Update JQuery UI progress bar.
+					$( "#progressbar3" ).progressbar({
+						value: val3
+					});
+				});
+
+				//Si pulsas el botón1h, envía el evento clickb1h
+				$('#boton1h').click(function() {
+					socket.emit('clickb1');
+				});
+				//Si pulsas el botón1l, envía el evento clickb1l
+				$('#boton1l').click(function() {
+					socket.emit('clickb1');
+				});
+				//Si pulsas el botón2h, envía el evento clickb2h
+				$('#boton2h').click(function() {
+					socket.emit('clickb2');
+				});
+				//Si pulsas el botón2l, envía el evento clickb2l
+				$('#boton2l').click(function() {
+					socket.emit('clickb2');
+				});
+				//Si pulsas el botón3h, envía el evento clickb3h
+				$('#boton3h').click(function() {
+					socket.emit('clickb3');
+				});
+				//Si pulsas el botón3l, envía el evento clickb3l
+				$('#boton3l').click(function() {
+					socket.emit('clickb3');
+				});
+				//El servidor nos responde al clickb1 con este evento y nos da el status del Led1 en el callback.
+				socket.on('sclickb1', function(clickb1) {
+					console.log(clickb1);
+					toggleb1();
+				});
+				//El servidor nos responde al clickb2 con este evento y nos da el status del Led2 en el callback.
+				socket.on('sclickb2', function(clickb2) {
+					console.log(clickb2);
+					toggleb2();
+				});
+				//El servidor nos responde al clickb3 con este evento y nos da el status del Led3 en el callback.
+				socket.on('sclickb3', function(clickb3) {
+					console.log(clickb3);
+					toggleb3();
+				});
+			});
+		});
+		</script>
+	</head>
+<body>
+	<div id="contenedor" role="main">
+		<div id="cabecera">
+			<h3>Por: <a href="http://twitter.com/achainya/">@achainya</a></h3>
+		</div>
+		<div id="contenido">
+			<div id="caja">
+				<div id="primero">
+					Potenciometro1: <span id="sensor_value1"></span> %<br/>
+					<div id="progressbar1" style="width:250px;height:20px;"></div><br/>
+					Grafico:<br/>
+					<div id="placeholder" style="width:500px;height:200px;"></div><br/>
+				</div>
+				<div id="segundo">
+					Potenciometro2: <span id="sensor_value2"></span> %
+				<div id="progressbar2" style="width:180px;height:10px;"></div><br/>
+				</div>
+			</div>
+			<div id="tercero">
+				Potenciometro3: <span id="sensor_value3"></span> %<br/>
+				<div id="progressbar3" style="width:180px;height:10px;"></div><br/>
+			</div>
+		</div>
+		<div id="pie">
+			<h3>Acciones:</h3>
+			<input type="button" value="Led1 on"  id="boton1h" class="btn btn-danger">
+			<input type="button" value="Led1 off" id="boton1l" class="hide">
+			<input type="button" value="Led2 on"  id="boton2h" class="btn btn-warning">
+			<input type="button" value="Led2 off" id="boton2l" class="hide">
+			<input type="button" value="Led3 on"  id="boton3h" class="btn btn-primary">
+			<input type="button" value="Led3 off" id="boton3l" class="hide">
+		</div>
+	</div>
+</body>
+
+	
+</html>

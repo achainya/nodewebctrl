@@ -1,0 +1,14 @@
+# Ignorando archivos generados por el compilador CCS
+
+/codemicro/*.err
+/codemicro/*.sym
+/codemicro/*.esym
+
+# Ignorando la Carpeta Vacía
+
+/empty
+
+# Ignorando un Archivo Individual
+
+#/archivo.dumm
+
